@@ -12,8 +12,6 @@
 
  You will need a [Twitter developer account](https://developer.twitter.com/), with all 4 keys provided an in .env file in the root directory of the program to authenticate the bot (more info on keys: https://docs.tweepy.org/en/stable/auth_tutorial.html).
 
- After doing so, run main.py, which will ask for the current number the JunoCam dataset is on.  This can be found on the main twitter account's bio.
-
  ## Contact
 I can be contacted via the following methods:
 * Email: `christianmigueldiaz@gmail.com`
@@ -22,7 +20,7 @@ I can be contacted via the following methods:
 I will try my best to respond to legitimate questions/inquires at soon as possible, however it may take me a few days at most.
 
 ## Licensing
-This project uses the [MIT License](LICENSE.md).
+This project uses the [MIT License](LICENSE).
 
 
 
