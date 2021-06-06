@@ -160,7 +160,6 @@ def save_zip(data, filename, mode):
             print("No image found in dataset, aborting this imageset...")
         return False
         
-
     # Data zip files
     if mode == "data":
         # Returns last file in dataset folder
@@ -220,8 +219,8 @@ while True:
             try:
                 api.update_profile(description=f"A bot that tweets recent public images from the JunoCam team, taken from the Juno spacecraft in orbit around Jupiter. Built by @chrisd149. Current Num: {current_num}")
             except Exception as e:
-            # Sleeps if error occurred, sleeps longer with more attmepts, and eventually aborts after 3 failed attempts.
-            print(f"Encountered error: {e}.")
+                # Sleeps if error occurred, sleeps longer with more attmepts, and eventually aborts after 3 failed attempts.
+                print(f"Encountered error: {e}.")
         
     except requests.exceptions.Timeout:
         attempts += 1
