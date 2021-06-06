@@ -7,6 +7,7 @@ import shutil
 import time
 from datetime import datetime
 import re
+import sys
 import os
 from zipfile import ZipFile
 import tweepy
@@ -16,6 +17,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+if not os.path.isfile(".env"):
+    print("Missing env file!  Please make an .env file with all 4 twitter API keys.")
+    sys.exit()
+    
 # Authenticate to Twitter
 auth = tweepy.OAuthHandler(os.getenv('CONSUMER_KEY'), os.getenv('CONSUMER_SECRET'))
 auth.set_access_token(os.getenv('ACCESS_TOKEN'), os.getenv('ACCESS_TOKEN_SECRET'))
@@ -215,12 +220,6 @@ while True:
                 print("Not an image set!")
                 x = 1
                 current_num += 1
-
-            try:
-                api.update_profile(description=f"A bot that tweets recent public images from the JunoCam team, taken from the Juno spacecraft in orbit around Jupiter. Built by @chrisd149. Current Num: {current_num}")
-            except Exception as e:
-                # Sleeps if error occurred, sleeps longer with more attmepts, and eventually aborts after 3 failed attempts.
-                print(f"Encountered error: {e}.")
         
     except requests.exceptions.Timeout:
         attempts += 1
