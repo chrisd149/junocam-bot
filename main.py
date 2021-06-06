@@ -80,7 +80,7 @@ def get_meta_data():
             print("bad!")
         except Exception as e:
             print(f"Error {e} occurred, aborting...")
-            sleep(900)
+            time.sleep(900)
         if attempts >= 3:
             return None
 
@@ -216,6 +216,12 @@ while True:
                 print("Not an image set!")
                 x = 1
                 current_num += 1
+
+            try:
+                api.update_profile(description=f"A bot that tweets recent public images from the JunoCam team, taken from the Juno spacecraft in orbit around Jupiter. Built by @chrisd149. Current Num: {current_num}")
+            except Exception as e:
+            # Sleeps if error occurred, sleeps longer with more attmepts, and eventually aborts after 3 failed attempts.
+            print(f"Encountered error: {e}.")
         
     except requests.exceptions.Timeout:
         attempts += 1
@@ -225,7 +231,7 @@ while True:
         print("bad!")
     except Exception as e:
         print(f"Error {e} occurred, aborting...")
-        sleep(900)
+        time.sleep(900)
     if attempts >= 3:
         current_num += 1
         attempts = 0
