@@ -20,6 +20,9 @@ load_dotenv()
 if not os.path.isfile(".env"):
     print("Missing env file!  Please make an .env file with all 4 twitter API keys.")
     sys.exit()
+if not os.path.isfile("current_num.txt"):
+    f = open("current_num.txt", "w+")
+    f.close()
     
 # Authenticate to Twitter
 auth = tweepy.OAuthHandler(os.getenv('CONSUMER_KEY'), os.getenv('CONSUMER_SECRET'))
@@ -31,6 +34,10 @@ api = tweepy.API(auth)
 # Current number the JunoCam dataset is at.
 # This is used to get a starting point for the bot to start processing images.
 current_num = int(input("Please enter the current number of junocam: "))
+if current_num == 0:
+    f = open("current_num.txt", "w")
+    current_num = f.read()
+    f.close()
 
 
 def web_client(num):
@@ -51,7 +58,11 @@ def get_meta_data():
             filename = get_filename_from_cd(response.headers.get('content-disposition'))
             # Removes quotes from filename
             filename = filename[1: -1]
-            int(filename[0:4])
+            try:
+                int(filename[0:4])
+            except ValueError:
+                print("No DataSet!")
+                return None
             if "Data" in filename:
                 # Gets the downloaded JSON and filename.
                 file = save_zip(response, filename, "data")
@@ -84,8 +95,8 @@ def get_meta_data():
             attempts += 1
             print("bad!")
         except Exception as e:
-            print(f"Error {e} occurred, aborting...")
-            time.sleep(900)
+            print(f"t) Error {e} occurred, aborting...")
+            time.sleep(30)
         if attempts >= 3:
             return None
 
@@ -93,11 +104,14 @@ def get_meta_data():
 def tweet_image(file):
     d = get_meta_data()  # Metadata for status
     if d is None:
-        status = "Could not retrieve metadata"
+        status = "No metadata available."
     else:
         status = (f"Perijove {d['PJ']}: {d['Instrument']}, taken at {d['Time']}, Target: {d['Target']} (Image credit: {d['Credit']})")
     attempts = 0
     while True:
+        if d is None:
+            print(f"No metadata for {current_num}")
+            break
         try:
             # Tweets image with metadata
             upload_result = api.media_upload(filename=file)
@@ -156,14 +170,8 @@ def save_zip(data, filename, mode):
                 write_image(file)
                 image = True
         if image is False:
-            # if no map projected images are found, we used the raw image.
-            for file in files: 
-                if "raw" in file:
-                    write_image(file)
-                    image = True
-        if image is False:
             print("No image found in dataset, aborting this imageset...")
-        return False
+            return False
         
     # Data zip files
     if mode == "data":
@@ -186,8 +194,12 @@ def get_filename_from_cd(cd):
 
 attempts = 0
 while True:
+    file = open("current_num.txt", "w")
+    file.write(str(current_num))
+    file.close()
+    
     # x is the multiplier applied to the sleep period.
-    x = 15
+    x = 60
     try:
         # Pings the the JunoCam url with the current number.  It will continously 
         print(f"Current iteration: {current_num}")
@@ -207,12 +219,13 @@ while True:
                 if "ImageSet" in filename:
                     save_zip(response, filename, "image")
                     x = 1
+                    current_num += 4
                 else:
                     # Can be DataSet file, which is only used later.
                     # Not imageset (move to next image.)
                     print("Not an image set!")
                     x = 1
-                current_num += 1
+                    current_num += 1
 
             except ValueError:
                 # First 5 characters are not digits.
@@ -228,13 +241,13 @@ while True:
         attempts += 1
         print("bad!")
     except Exception as e:
-        print(f"Error {e} occurred, aborting...")
-        time.sleep(900)
+        print(f"j) Error {e} occurred, aborting...")
+        time.sleep(30)
     if attempts >= 3:
         current_num += 1
         attempts = 0
 
     # Sleeps for a random time between a range.
-    sleep_time = random.randrange(60 * x, 120 * x)
+    sleep_time = random.randrange(15 * x, 30 * x)
     print(f"Sleeping for {sleep_time} seconds.")
     time.sleep(sleep_time)
