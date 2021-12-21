@@ -114,3 +114,4 @@ dmypy.json
 .pyre/
 data/
 current_num.txt
+saved_image_names.txt

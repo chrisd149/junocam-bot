@@ -14,6 +14,7 @@ import tweepy
 import random
 import json
 from dotenv import load_dotenv
+import requests
 
 load_dotenv()
 
@@ -33,10 +34,10 @@ api = tweepy.API(auth)
 
 # Current number the JunoCam dataset is at.
 # This is used to get a starting point for the bot to start processing images.
-current_num = int(input("Please enter the current number of junocam: "))
-if current_num == 0:
-    f = open("current_num.txt", "w")
-    current_num = f.read()
+current_num = input("Please enter the current number of junocam: ")
+if int(current_num) == 0:
+    f = open("current_num.txt", "r+")
+    current_num = int(f.read())
     f.close()
 
 
@@ -45,6 +46,31 @@ def web_client(num):
     response = requests.get(f"https://www.missionjuno.swri.edu/Vault/VaultDownload?VaultID={num}", stream=True)
     return response
 
+
+def refresh_saved_images(*file):
+    saved_image_names = []
+    if file:
+        with open("saved_image_names.txt", "r+") as file_handle:
+            saved_image_names = [current_place.rstrip() for current_place in file_handle.readlines()]
+        saved_image_names.append(file)
+    else:
+        if os.path.isdir("data"):
+            for root, dirs, files in os.walk("data"):
+                for image in files:
+                    saved_image_names.append(image)
+    with open('saved_image_names.txt', 'w') as filehandle:
+        filehandle.writelines("%s\n" % image for image in saved_image_names)
+
+
+def check_if_image_saved(image):
+    saved_image_names = []
+    with open("saved_image_names.txt", "r+") as file_handle:
+            saved_image_names = [current_place.rstrip() for current_place in file_handle.readlines()]
+    if image in saved_image_names:
+        return True
+    else:
+        return False
+    
 
 def get_meta_data():
     # Returns metadata of selected image.
@@ -114,8 +140,19 @@ def tweet_image(file):
             break
         try:
             # Tweets image with metadata
-            upload_result = api.media_upload(filename=file)
-            api.update_status(status=status, media_ids=[upload_result.media_id_string])
+            upload_result = api.media_upload(filename=file, chunked=True)
+            metadata = {"media_id": upload_result.media_id_string,
+                        "alt_text": {
+                            "text": status,
+                            }
+                        }
+            print(metadata)
+            try:
+                requests.post(url="https://upload.twitter.com/1.1/media/metadata/create.json", data=metadata)
+            except Exception as e:
+                print("oh dear")
+                print(e)
+            api.update_status(status=status, media_ids=[upload_result.media_id_string], chunked=True)
             print(f"Tweeted at {time.time()}!")
             break
         except Exception as e:
@@ -130,10 +167,22 @@ def tweet_image(file):
 
 def write_image(filename):
     # Creates data path for images
-    raw_file = os.path.join("ImageSet", filename)
     if not os.path.isdir("data"):
         os.mkdir("data")
+    else:
+        # Naive method of checking if image has already been tweeted.
+        # TODO: store and check media IDs 
+        image_saved = check_if_image_saved(filename)
+        if image_saved == True:
+            print("Image has already been sent.")
+            return False
+        else:
+            pass
 
+    raw_file = os.path.join("ImageSet", filename)
+    if os.path.getsize(raw_file) >= 4882999:
+        print("File too big, aborting image.")
+        return False
     # Creates path for file based on the date of the image.
     file_date = datetime.strptime(filename[5:12], "%Y%j")
     str_date = file_date.strftime("%Y/%j")
@@ -145,11 +194,9 @@ def write_image(filename):
     shutil.copyfile(raw_file, final_file)
     shutil.rmtree("ImageSet")  # Deletes temp imageset folder and image
     print('Successfully saved image!')
-    if os.stat(final_file).st_size >= 4882000:
-        print("Image is too big to upload to Twitter, aborting tweet...")
-        return 
-    else:
-        tweet_image(final_file)
+    refresh_saved_images(filename)
+    tweet_image(final_file)
+    return True
 
 
 def save_zip(data, filename, mode):
@@ -167,8 +214,11 @@ def save_zip(data, filename, mode):
         for file in files: 
             # "mapprojected" is a stacked RGB image
             if "mapprojected" in file:
-                write_image(file)
-                image = True
+                image = write_image(file)
+        if image is False:
+            for file in files: 
+                if "raw" in file:
+                    image = write_image(file)
         if image is False:
             print("No image found in dataset, aborting this imageset...")
             return False
@@ -193,6 +243,7 @@ def get_filename_from_cd(cd):
 
 
 attempts = 0
+refresh_saved_images()
 while True:
     file = open("current_num.txt", "w")
     file.write(str(current_num))
