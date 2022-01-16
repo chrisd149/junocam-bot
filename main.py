@@ -39,6 +39,7 @@ if int(current_num) == 0:
     f = open("current_num.txt", "r+")
     current_num = int(f.read())
     f.close()
+current_num = int(current_num)
 
 
 def web_client(num):
@@ -175,7 +176,7 @@ def write_image(filename):
         image_saved = check_if_image_saved(filename)
         if image_saved == True:
             print("Image has already been sent.")
-            return False
+            return
         else:
             pass
 
